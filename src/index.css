@@ -1,0 +1,215 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: #0f0f1a;
+  color: #e8e8f0;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+
+.app-layout {
+  display: flex;
+  height: 100%;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: #13131f;
+  border-right: 1px solid #252540;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 20px 16px 14px;
+  border-bottom: 1px solid #252540;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sidebar-logo-icon { font-size: 20px; }
+
+.sidebar-logo-text {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.sidebar-sub {
+  font-size: 11px;
+  color: #5555aa;
+  letter-spacing: 0.03em;
+}
+
+.sidebar-section-label {
+  padding: 14px 16px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #44448a;
+}
+
+.categories {
+  flex: 1;
+  padding: 4px 10px 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  background: #1a1a30;
+  border: 1px solid #252540;
+  border-radius: 8px;
+  color: #7878a8;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.cat-btn:hover {
+  border-color: var(--c);
+  color: #c8c8e8;
+  background: #1e1e38;
+}
+
+.cat-btn.active {
+  border-color: var(--c);
+  color: #fff;
+  background: color-mix(in srgb, var(--c) 12%, #1a1a30);
+}
+
+.cat-icon { font-size: 17px; flex-shrink: 0; }
+.cat-label { flex: 1; }
+
+.cat-pill {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #44448a;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.cat-pill.on {
+  background: var(--c);
+  border-color: var(--c);
+}
+
+/* ── Legend ──────────────────────────────────────────────────────── */
+
+.legend {
+  padding: 14px 16px 18px;
+  border-top: 1px solid #252540;
+}
+
+.legend-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #44448a;
+  margin-bottom: 8px;
+}
+
+.legend-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to left, #cc2200, #ff6600, #ffcc00, #88dd00, #00aa44);
+  margin-bottom: 5px;
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #5555aa;
+  margin-bottom: 8px;
+}
+
+.legend-note {
+  font-size: 10px;
+  color: #3a3a60;
+}
+
+/* ── Map area ────────────────────────────────────────────────────── */
+
+.map-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.map-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 13, 26, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+}
+
+.map-status {
+  background: #13131f;
+  border: 1px solid #252540;
+  border-radius: 10px;
+  padding: 16px 24px;
+  font-size: 13px;
+  color: #a8a8d0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.map-status.error { color: #ff8888; border-color: #552222; }
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #252540;
+  border-top-color: #6666cc;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── MapLibre overrides ──────────────────────────────────────────── */
+
+.maplibregl-ctrl-attrib { font-size: 10px !important; }
+
+.map-popup .maplibregl-popup-content {
+  background: #13131f;
+  color: #e8e8f0;
+  border: 1px solid #252540;
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 6px 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.map-popup .maplibregl-popup-tip { border-top-color: #13131f; }
