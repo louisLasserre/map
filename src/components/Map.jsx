@@ -2,20 +2,45 @@ import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-const MAX_DISTANCE = 1500 // metres
+// ── Point-in-polygon (ray casting) ───────────────────────────────────────────
 
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371000
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+function pointInRing([x, y], ring) {
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j]
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside
+    }
+  }
+  return inside
 }
 
-function colorStreets(streets, allPois) {
-  const noData = allPois.length === 0
+function pointInGeometry(point, geom) {
+  if (geom.type === 'Polygon') return pointInRing(point, geom.coordinates[0])
+  if (geom.type === 'MultiPolygon') return geom.coordinates.some(poly => pointInRing(point, poly[0]))
+  return false
+}
+
+// Returns the minimum travel time in minutes from point to any POI in the list.
+// poisWithBands: [{id, name, bands: [{mins, geometry}...sorted asc]}]
+// Returns Infinity if outside all isochrones.
+function getMinMins(point, poisWithBands) {
+  let min = Infinity
+  for (const poi of poisWithBands) {
+    for (const band of poi.bands) {
+      if (pointInGeometry(point, band.geometry)) {
+        if (band.mins < min) min = band.mins
+        break // found tightest band for this POI
+      }
+    }
+  }
+  return min
+}
+
+// ── Street coloring ───────────────────────────────────────────────────────────
+
+function colorStreets(streets, allPoisWithBands) {
+  const noData = allPoisWithBands.length === 0
   return {
     ...streets,
     features: streets.features.map(feature => {
@@ -24,25 +49,17 @@ function colorStreets(streets, allPois) {
         (coords[0][0] + coords[coords.length - 1][0]) / 2,
         (coords[0][1] + coords[coords.length - 1][1]) / 2,
       ]
-
-      let score = 0
-      if (!noData) {
-        let minDist = Infinity
-        for (const poi of allPois) {
-          const d = haversine(mid[1], mid[0], poi.lat, poi.lng)
-          if (d < minDist) minDist = d
-        }
-        score = Math.max(0, 1 - minDist / MAX_DISTANCE)
-      }
-
-      return { ...feature, properties: { ...feature.properties, score, noData } }
+      const mins = noData ? -1 : Math.min(getMinMins(mid, allPoisWithBands), 25)
+      return { ...feature, properties: { ...feature.properties, mins } }
     }),
   }
 }
 
+// ── MapLibre setup ────────────────────────────────────────────────────────────
+
 function setupMap(map) {
   map.addSource('streets', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
-  map.addSource('pois', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+  map.addSource('pois',    { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
 
   map.addLayer({
     id: 'streets-coverage',
@@ -52,22 +69,17 @@ function setupMap(map) {
       'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.5, 15, 4],
       'line-color': [
         'case',
-        ['boolean', ['get', 'noData'], true],
-        '#3a3a5c',
-        [
-          'interpolate', ['linear'], ['coalesce', ['get', 'score'], 0],
-          0,    '#cc2200',
-          0.25, '#ff6600',
-          0.5,  '#ffcc00',
-          0.75, '#88dd00',
-          1.0,  '#00aa44',
-        ],
+        ['==', ['get', 'mins'], -1], '#3a3a5c',   // no category selected
+        ['<=', ['get', 'mins'], 5],  '#00aa44',   // ≤ 5 min
+        ['<=', ['get', 'mins'], 10], '#88dd00',   // ≤ 10 min
+        ['<=', ['get', 'mins'], 15], '#ffcc00',   // ≤ 15 min
+        ['<=', ['get', 'mins'], 20], '#ff6600',   // ≤ 20 min
+        '#cc2200',                                // > 20 min
       ],
-      'line-opacity': ['case', ['boolean', ['get', 'noData'], true], 0.35, 1],
+      'line-opacity': ['case', ['==', ['get', 'mins'], -1], 0.25, 1],
     },
   })
 
-  // POI halo
   map.addLayer({
     id: 'pois-halo',
     type: 'circle',
@@ -75,20 +87,13 @@ function setupMap(map) {
     paint: {
       'circle-radius': 14,
       'circle-color': ['match', ['get', 'category'],
-        'hospital',     '#e74c3c',
-        'police',       '#3498db',
-        'park',         '#27ae60',
-        'fire_station', '#e67e22',
-        'school',       '#9b59b6',
-        'water',        '#1abc9c',
-        '#888',
-      ],
+        'hospital', '#e74c3c', 'police', '#3498db', 'park', '#27ae60',
+        'fire_station', '#e67e22', 'school', '#9b59b6', 'water', '#1abc9c', '#888'],
       'circle-opacity': 0.15,
       'circle-blur': 1,
     },
   })
 
-  // POI dot
   map.addLayer({
     id: 'pois-dot',
     type: 'circle',
@@ -96,20 +101,13 @@ function setupMap(map) {
     paint: {
       'circle-radius': 5,
       'circle-color': ['match', ['get', 'category'],
-        'hospital',     '#e74c3c',
-        'police',       '#3498db',
-        'park',         '#27ae60',
-        'fire_station', '#e67e22',
-        'school',       '#9b59b6',
-        'water',        '#1abc9c',
-        '#888',
-      ],
+        'hospital', '#e74c3c', 'police', '#3498db', 'park', '#27ae60',
+        'fire_station', '#e67e22', 'school', '#9b59b6', 'water', '#1abc9c', '#888'],
       'circle-stroke-width': 2,
       'circle-stroke-color': '#fff',
     },
   })
 
-  // Tooltip
   const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'map-popup' })
   map.on('mouseenter', 'pois-dot', e => {
     map.getCanvas().style.cursor = 'pointer'
@@ -122,9 +120,13 @@ function setupMap(map) {
   })
 }
 
-function applyData(map, streets, pois) {
+function applyData(map, streets, isochrones, pois) {
+  // Flatten all selected POIs with their isochrone bands
+  const allPoisWithBands = Object.values(isochrones).flatMap(iso => iso.pois ?? [])
+  map.getSource('streets')?.setData(colorStreets(streets, allPoisWithBands))
+
+  // POI markers (from raw pois, not isochrones, since we always have them)
   const allPois = Object.values(pois).flat()
-  map.getSource('streets')?.setData(colorStreets(streets, allPois))
   map.getSource('pois')?.setData({
     type: 'FeatureCollection',
     features: allPois.map(p => ({
@@ -135,17 +137,19 @@ function applyData(map, streets, pois) {
   })
 }
 
-export default function Map({ streets, pois }) {
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function Map({ streets, isochrones, pois }) {
   const containerRef = useRef(null)
-  const mapRef = useRef(null)
-  const latestRef = useRef({ streets, pois })
+  const mapRef       = useRef(null)
+  const latestRef    = useRef({ streets, isochrones, pois })
 
   useEffect(() => {
-    latestRef.current = { streets, pois }
+    latestRef.current = { streets, isochrones, pois }
     const map = mapRef.current
     if (!map || !streets) return
-    if (map.isStyleLoaded()) applyData(map, streets, pois)
-  }, [streets, pois])
+    if (map.isStyleLoaded()) applyData(map, streets, isochrones, pois)
+  }, [streets, isochrones, pois])
 
   useEffect(() => {
     const map = new maplibregl.Map({
@@ -154,21 +158,17 @@ export default function Map({ streets, pois }) {
       center: [-0.5792, 44.8378],
       zoom: 13,
     })
-
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right')
 
     map.on('load', () => {
       setupMap(map)
-      const { streets, pois } = latestRef.current
-      if (streets) applyData(map, streets, pois)
+      const { streets, isochrones, pois } = latestRef.current
+      if (streets) applyData(map, streets, isochrones, pois)
     })
 
     mapRef.current = map
-    return () => {
-      map.remove()
-      mapRef.current = null
-    }
+    return () => { map.remove(); mapRef.current = null }
   }, [])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />

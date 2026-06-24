@@ -30,6 +30,14 @@ db.exec(`
     fetched_at  INTEGER NOT NULL,
     geojson     TEXT    NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS isochrones_cache (
+    category    TEXT    NOT NULL,
+    mode        TEXT    NOT NULL,
+    geojson     TEXT    NOT NULL,
+    fetched_at  INTEGER NOT NULL,
+    PRIMARY KEY (category, mode)
+  );
 `)
 
 const poiCount = db.prepare('SELECT COUNT(*) as n FROM pois').get()

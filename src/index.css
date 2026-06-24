@@ -118,6 +118,72 @@ html, body, #root {
   border-color: var(--c);
 }
 
+/* ── Mode selector ───────────────────────────────────────────────── */
+
+.mode-selector {
+  display: flex;
+  gap: 5px;
+  padding: 4px 10px 10px;
+}
+
+.mode-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 4px;
+  background: #1a1a30;
+  border: 1px solid #252540;
+  border-radius: 8px;
+  color: #7878a8;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.12s;
+}
+
+.mode-btn span:first-child { font-size: 18px; }
+
+.mode-btn:hover { border-color: #6666cc; color: #c8c8e8; }
+
+.mode-btn.active {
+  background: color-mix(in srgb, #6666cc 15%, #1a1a30);
+  border-color: #6666cc;
+  color: #fff;
+}
+
+/* ── Loading dot ─────────────────────────────────────────────────── */
+
+.loading-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #6666cc;
+  border-radius: 50%;
+  margin-left: 6px;
+  animation: pulse 1s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* ── API error ───────────────────────────────────────────────────── */
+
+.api-error {
+  margin: 6px 10px;
+  padding: 10px 12px;
+  background: #2a1a1a;
+  border: 1px solid #552222;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #ff9988;
+  line-height: 1.5;
+}
+
 /* ── Legend ──────────────────────────────────────────────────────── */
 
 .legend {
@@ -134,24 +200,25 @@ html, body, #root {
   margin-bottom: 8px;
 }
 
-.legend-bar {
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(to left, #cc2200, #ff6600, #ffcc00, #88dd00, #00aa44);
-  margin-bottom: 5px;
-}
-
-.legend-labels {
+.legend-steps {
   display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: #5555aa;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.legend-note {
-  font-size: 10px;
-  color: #3a3a60;
+.legend-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #7878a8;
+}
+
+.legend-swatch {
+  width: 24px;
+  height: 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 /* ── Map area ────────────────────────────────────────────────────── */
