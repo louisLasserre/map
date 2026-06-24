@@ -2,24 +2,15 @@ import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-// Thresholds (minutes) per transport mode — must match MODE_RANGES in api.js
-const MODE_THRESHOLDS = {
-  'foot-walking':    [5,  10, 15, 20],
-  'cycling-regular': [3,   5, 10, 15],
-  'driving-car':     [1,   2,  3,  5],
-}
-
-function buildPaintColor([t1, t2, t3, t4]) {
-  return [
-    'case',
-    ['==', ['get', 'mins'], -1], '#3a3a5c',
-    ['<=', ['get', 'mins'], t1], '#00aa44',
-    ['<=', ['get', 'mins'], t2], '#88dd00',
-    ['<=', ['get', 'mins'], t3], '#ffcc00',
-    ['<=', ['get', 'mins'], t4], '#ff6600',
-    '#cc2200',
-  ]
-}
+const PAINT_COLOR = [
+  'case',
+  ['==', ['get', 'mins'], -1], '#3a3a5c',
+  ['<=', ['get', 'mins'], 5],  '#00aa44',
+  ['<=', ['get', 'mins'], 10], '#88dd00',
+  ['<=', ['get', 'mins'], 15], '#ffcc00',
+  ['<=', ['get', 'mins'], 20], '#ff6600',
+  '#cc2200',
+]
 
 // ── Point-in-polygon (ray casting) ───────────────────────────────────────────
 
@@ -76,7 +67,7 @@ function colorStreets(streets, allPoisWithBands) {
 
 // ── MapLibre setup ────────────────────────────────────────────────────────────
 
-function setupMap(map, modeRef) {
+function setupMap(map) {
   map.addSource('streets', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
   map.addSource('pois',    { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
 
@@ -86,7 +77,7 @@ function setupMap(map, modeRef) {
     source: 'streets',
     paint: {
       'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.5, 15, 4],
-      'line-color': buildPaintColor(MODE_THRESHOLDS['foot-walking']),
+      'line-color': PAINT_COLOR,
       'line-opacity': ['case', ['==', ['get', 'mins'], -1], 0.25, 1],
     },
   })
@@ -121,13 +112,10 @@ function setupMap(map, modeRef) {
 
   const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'map-popup' })
 
-  // Street tooltip showing computed time — reads current mode via closure over modeRef
   map.on('mousemove', 'streets-coverage', e => {
     const mins = e.features[0]?.properties?.mins
     if (mins == null || mins === -1) { popup.remove(); return }
-    const ts = MODE_THRESHOLDS[modeRef.current] ?? MODE_THRESHOLDS['foot-walking']
-    const maxT = ts[ts.length - 1]
-    const label = mins > maxT ? `> ${maxT} min` : `≤ ${mins} min`
+    const label = mins > 20 ? '> 20 min' : `≤ ${mins} min`
     popup.setLngLat(e.lngLat).setHTML(`<span style="opacity:.7">${e.features[0].properties.name || 'rue'}</span><br/><strong>${label}</strong>`).addTo(map)
   })
   map.on('mouseleave', 'streets-coverage', () => popup.remove())
@@ -163,11 +151,10 @@ function applyData(map, streets, isochrones, pois) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function Map({ streets, isochrones, pois, mode }) {
+export default function Map({ streets, isochrones, pois }) {
   const containerRef = useRef(null)
   const mapRef       = useRef(null)
   const latestRef    = useRef({ streets, isochrones, pois })
-  const modeRef      = useRef(mode ?? 'foot-walking')
 
   useEffect(() => {
     latestRef.current = { streets, isochrones, pois }
@@ -175,15 +162,6 @@ export default function Map({ streets, isochrones, pois, mode }) {
     if (!map || !streets) return
     if (map.isStyleLoaded()) applyData(map, streets, isochrones, pois)
   }, [streets, isochrones, pois])
-
-  // Update paint expression when mode changes
-  useEffect(() => {
-    modeRef.current = mode ?? 'foot-walking'
-    const map = mapRef.current
-    if (!map || !map.isStyleLoaded()) return
-    const thresholds = MODE_THRESHOLDS[mode] ?? MODE_THRESHOLDS['foot-walking']
-    map.setPaintProperty('streets-coverage', 'line-color', buildPaintColor(thresholds))
-  }, [mode])
 
   useEffect(() => {
     const map = new maplibregl.Map({
@@ -196,12 +174,9 @@ export default function Map({ streets, isochrones, pois, mode }) {
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right')
 
     map.on('load', () => {
-      setupMap(map, modeRef)
+      setupMap(map)
       const { streets, isochrones, pois } = latestRef.current
       if (streets) applyData(map, streets, isochrones, pois)
-      // Apply correct paint for initial mode
-      const thresholds = MODE_THRESHOLDS[modeRef.current] ?? MODE_THRESHOLDS['foot-walking']
-      map.setPaintProperty('streets-coverage', 'line-color', buildPaintColor(thresholds))
     })
 
     mapRef.current = map
