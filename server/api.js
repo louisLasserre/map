@@ -19,9 +19,15 @@ try {
   }
 } catch {}
 
-const ORS_RANGES = [300, 600, 900, 1200] // 5, 10, 15, 20 min in seconds
+// Time bands per transport mode (seconds). Finer granularity for fast modes.
+const MODE_RANGES = {
+  'foot-walking':    [300, 600, 900, 1200], // 5, 10, 15, 20 min
+  'cycling-regular': [180, 300, 600, 900],  // 3, 5, 10, 15 min
+  'driving-car':     [60,  120, 180, 300],  // 1, 2, 3, 5 min
+}
 
 async function fetchOrsIsochrones(locations, mode, apiKey) {
+  const ranges = MODE_RANGES[mode] ?? MODE_RANGES['foot-walking']
   const res = await fetch(`https://api.openrouteservice.org/v2/isochrones/${mode}`, {
     method: 'POST',
     headers: {
@@ -31,7 +37,7 @@ async function fetchOrsIsochrones(locations, mode, apiKey) {
     },
     body: JSON.stringify({
       locations,
-      range: ORS_RANGES,
+      range: ranges,
       range_type: 'time',
       smoothing: 25,
     }),

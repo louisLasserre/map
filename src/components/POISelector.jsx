@@ -13,6 +13,12 @@ const MODES = [
   { key: 'driving-car',     label: 'Voiture', icon: '🚗' },
 ]
 
+const LEGEND_BY_MODE = {
+  'foot-walking':    [['≤ 5 min', '#00aa44'], ['≤ 10 min', '#88dd00'], ['≤ 15 min', '#ffcc00'], ['≤ 20 min', '#ff6600'], ['> 20 min', '#cc2200']],
+  'cycling-regular': [['≤ 3 min', '#00aa44'], ['≤ 5 min',  '#88dd00'], ['≤ 10 min', '#ffcc00'], ['≤ 15 min', '#ff6600'], ['> 15 min', '#cc2200']],
+  'driving-car':     [['≤ 1 min', '#00aa44'], ['≤ 2 min',  '#88dd00'], ['≤ 3 min',  '#ffcc00'], ['≤ 5 min',  '#ff6600'], ['> 5 min',  '#cc2200']],
+}
+
 export default function POISelector({ selected, mode, onModeChange, onChange, loading, apiError }) {
   function toggle(key) {
     onChange(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
@@ -77,7 +83,7 @@ export default function POISelector({ selected, mode, onModeChange, onChange, lo
       <div className="legend">
         <div className="legend-title">Temps d'accès</div>
         <div className="legend-steps">
-          {[['≤ 5 min', '#00aa44'], ['≤ 10 min', '#88dd00'], ['≤ 15 min', '#ffcc00'], ['≤ 20 min', '#ff6600'], ['> 20 min', '#cc2200']].map(([label, color]) => (
+          {(LEGEND_BY_MODE[mode] ?? LEGEND_BY_MODE['foot-walking']).map(([label, color]) => (
             <div key={label} className="legend-step">
               <span className="legend-swatch" style={{ background: color }} />
               <span>{label}</span>

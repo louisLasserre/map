@@ -81,7 +81,7 @@ export default function App() {
             <div className="map-status error">Erreur : {streetsMsg}</div>
           </div>
         )}
-        <Map streets={streets} isochrones={isochrones} pois={pois} />
+        <Map streets={streets} isochrones={isochrones} pois={pois} mode={mode} />
       </div>
     </div>
   )
