@@ -27,7 +27,7 @@ async function fetchOrsIsochrones(locations, mode, apiKey) {
     headers: {
       'Authorization': apiKey,
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      'Accept': 'application/geo+json',
     },
     body: JSON.stringify({
       locations,
@@ -103,12 +103,23 @@ export function createApi() {
     if (pois.length === 0) return res.json({ pois: [] })
 
     try {
-      const locations = pois.map(p => [p.lng, p.lat])
-      const orsData = await fetchOrsIsochrones(locations, mode, apiKey)
+      // ORS free plan: max 5 locations per request — batch accordingly
+      const BATCH = 5
+      const allFeatures = []
+      let globalIndex = 0
+      for (let i = 0; i < pois.length; i += BATCH) {
+        const batch = pois.slice(i, i + BATCH)
+        const locations = batch.map(p => [p.lng, p.lat])
+        const orsData = await fetchOrsIsochrones(locations, mode, apiKey)
+        for (const feat of orsData.features) {
+          allFeatures.push({ ...feat, properties: { ...feat.properties, group_index: feat.properties.group_index + globalIndex } })
+        }
+        globalIndex += batch.length
+      }
 
-      // Restructure: group features by group_index (= poi index), sort bands ascending
+      // Restructure: group features by global group_index, sort bands ascending
       const grouped = {}
-      for (const feat of orsData.features) {
+      for (const feat of allFeatures) {
         const gi = feat.properties.group_index
         if (!grouped[gi]) grouped[gi] = []
         grouped[gi].push({ mins: feat.properties.value / 60, geometry: feat.geometry })
