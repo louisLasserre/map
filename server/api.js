@@ -47,6 +47,8 @@ async function fetchOrsIsochrones(locations, mode, apiKey) {
 export function createApi() {
   const app = express()
   app.use(express.json())
+  // Allow iframe embedding (e.g. Metabase)
+  app.use((_req, res, next) => { res.removeHeader('X-Frame-Options'); next() })
 
   app.get('/api/notes', (_req, res) => {
     const rows = db.prepare('SELECT id, body, created_at FROM notes ORDER BY id DESC').all()

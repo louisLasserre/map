@@ -1,16 +1,23 @@
 import { useEffect, useState } from 'react'
 import Map from './components/Map.jsx'
 import POISelector from './components/POISelector.jsx'
+import EmbedLegend from './components/EmbedLegend.jsx'
 import './index.css'
 
+// Read URL params once — supports ?categories=hospital,police&mode=driving-car&embed
+const params     = new URLSearchParams(window.location.search)
+const initCats   = params.get('categories')?.split(',').filter(Boolean) ?? ['hospital']
+const initMode   = params.get('mode') ?? 'foot-walking'
+const IS_EMBED   = params.has('embed')
+
 export default function App() {
-  const [selected,  setSelected]  = useState(['hospital'])
-  const [mode,      setMode]      = useState('foot-walking')
-  const [streets,   setStreets]   = useState(null)
-  const [pois,      setPois]      = useState({})
-  const [isochrones,  setIsochrones]  = useState({})
-  const [isoLoading,  setIsoLoading]  = useState(false)
-  const [apiError,    setApiError]    = useState(null)
+  const [selected,     setSelected]     = useState(initCats)
+  const [mode,         setMode]         = useState(initMode)
+  const [streets,      setStreets]      = useState(null)
+  const [pois,         setPois]         = useState({})
+  const [isochrones,   setIsochrones]   = useState({})
+  const [isoLoading,   setIsoLoading]   = useState(false)
+  const [apiError,     setApiError]     = useState(null)
   const [streetsState, setStreetsState] = useState('loading')
   const [streetsMsg,   setStreetsMsg]   = useState('')
 
@@ -59,14 +66,16 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      <POISelector
-        selected={selected}
-        mode={mode}
-        onModeChange={setMode}
-        onChange={setSelected}
-        loading={isoLoading}
-        apiError={apiError}
-      />
+      {!IS_EMBED && (
+        <POISelector
+          selected={selected}
+          mode={mode}
+          onModeChange={setMode}
+          onChange={setSelected}
+          loading={isoLoading}
+          apiError={apiError}
+        />
+      )}
       <div className="map-area">
         {streetsState === 'loading' && (
           <div className="map-overlay">
@@ -82,6 +91,7 @@ export default function App() {
           </div>
         )}
         <Map streets={streets} isochrones={isochrones} pois={pois} />
+        {IS_EMBED && <EmbedLegend loading={isoLoading} />}
       </div>
     </div>
   )

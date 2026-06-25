@@ -265,6 +265,51 @@ html, body, #root {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Embed legend (floating, mode ?embed) ───────────────────────── */
+
+.embed-legend {
+  position: absolute;
+  bottom: 32px;
+  left: 12px;
+  background: rgba(13, 13, 26, 0.85);
+  backdrop-filter: blur(6px);
+  border: 1px solid #252540;
+  border-radius: 8px;
+  padding: 10px 12px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.embed-legend-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #44448a;
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.embed-legend-step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #7878a8;
+  margin-bottom: 4px;
+}
+
+.embed-legend-step:last-child { margin-bottom: 0; }
+
+.embed-legend-swatch {
+  width: 20px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 /* ── MapLibre overrides ──────────────────────────────────────────── */
 
 .maplibregl-ctrl-attrib { font-size: 10px !important; }
