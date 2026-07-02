@@ -13,7 +13,7 @@ app.use(createApi())
 app.use(express.static(join(here, '..', 'dist')))
 
 // SPA fallback — all non-API routes serve index.html
-app.get('*', (_req, res) => {
+app.use((_req, res) => {
   res.sendFile(join(here, '..', 'dist', 'index.html'))
 })
 
